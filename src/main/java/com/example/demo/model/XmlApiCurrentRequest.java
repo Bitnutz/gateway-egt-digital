@@ -1,10 +1,10 @@
-package com.example.demo.xmlmodel;
+package com.example.demo.model;
 
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
 @JacksonXmlRootElement(localName = "command")
-public class CurrentDataXml {
+public class XmlApiCurrentRequest {
     @JacksonXmlProperty(isAttribute = true)
     private String id;
     @JacksonXmlProperty(localName = "get")

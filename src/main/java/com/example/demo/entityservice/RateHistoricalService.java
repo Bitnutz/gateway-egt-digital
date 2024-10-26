@@ -6,7 +6,6 @@ import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -27,7 +26,7 @@ public class RateHistoricalService {
 
     @Transactional
     public List<Instant> getLatestRateTimestampsByPeriod(int period) {
-        String selectQuery = "SELECT DISTINCT timestamp FROM Rate WHERE timestamp >= NOW() - make_interval(hours => :period)";
+        String selectQuery = "SELECT DISTINCT timestamp FROM Rate WHERE TIMESTAMPDIFF(HOUR, timestamp, CURRENT_TIMESTAMP) <= :period";
 
         List<Instant> result = entityManager.createQuery(selectQuery, Instant.class)
                 .setParameter("period", period)

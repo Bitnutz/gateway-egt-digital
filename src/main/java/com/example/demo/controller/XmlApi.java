@@ -1,8 +1,8 @@
 package com.example.demo.controller;
 
-import com.example.demo.service.RatesCollectorService;
-import com.example.demo.xmlmodel.CurrentDataXml;
-import com.example.demo.xmlmodel.PeriodDataXml;
+import com.example.demo.model.XmlApiCurrentRequest;
+import com.example.demo.model.XmlApiPeriodRequest;
+import com.example.demo.service.StatisticsCollectorService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
@@ -17,11 +17,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 @Controller
 public class XmlApi {
-
     @Autowired
-    private RatesCollectorService ratesCollectorService;
-    private final Logger logger = LoggerFactory.getLogger(XmlApi.class);
+    private StatisticsCollectorService statisticsCollectorService;
 
+    private final Logger logger = LoggerFactory.getLogger(XmlApi.class);
 
     private final String SEND_XML_REQUEST = "/xml_api/command";
 
@@ -29,8 +28,8 @@ public class XmlApi {
     public ResponseEntity<?> sendCurrentData(@RequestBody String request) throws JsonProcessingException {
         XmlMapper xmlMapper = new XmlMapper();
         try {
-            CurrentDataXml commandGet = xmlMapper.readValue(request, CurrentDataXml.class);
-            return ResponseEntity.ok(ratesCollectorService.getXmlApiCurrentData(commandGet));
+            XmlApiCurrentRequest commandGet = xmlMapper.readValue(request, XmlApiCurrentRequest.class);
+            return ResponseEntity.ok(statisticsCollectorService.getXmlApiCurrentData(commandGet));
         } catch (JsonMappingException exception) {
             logger.error("No request for current data was spotted.\nProceeding with checking for history data.");
         } catch (IllegalStateException duplicateException) {
@@ -39,8 +38,8 @@ public class XmlApi {
                     .body(duplicateException.getMessage());
         }
         try {
-            PeriodDataXml commandHistoryGet = xmlMapper.readValue(request, PeriodDataXml.class);
-            return ResponseEntity.ok(ratesCollectorService.getXmlApiHistoryData(commandHistoryGet));
+            XmlApiPeriodRequest commandHistoryGet = xmlMapper.readValue(request, XmlApiPeriodRequest.class);
+            return ResponseEntity.ok(statisticsCollectorService.getXmlApiHistoryData(commandHistoryGet));
         } catch (JsonMappingException exception) {
             logger.error("No request for current data was spotted.\nProceeding with checking for history data.");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("The XML request has an invalid syntax: " + exception.getMessage());
