@@ -31,4 +31,20 @@ public class RateHistorical {
                 this.base = base;
                 this.date = date;
         }
+
+        public Boolean getSuccess() {
+                return success;
+        }
+
+        public Instant getTimestamp() {
+                return timestamp;
+        }
+
+        public String getBase() {
+                return base;
+        }
+
+        public LocalDate getDate() {
+                return date;
+        }
 }

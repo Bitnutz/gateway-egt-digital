@@ -14,11 +14,11 @@ public class AuditLog{
         @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "audit_log_sequence_generator")
         @SequenceGenerator(name = "audit_log_sequence_generator", sequenceName = "audit_log_sequence", schema = "gateway", allocationSize = 1)
         private Long id;
-        private final String serviceId;
-        private final String requestId;
+        private String serviceId;
+        private String requestId;
         @JsonFormat(shape = JsonFormat.Shape.STRING, timezone = "UTC")
-        private final Instant time;
-        private final String endClientId;
+        private Instant time;
+        private String endClientId;
 
         public AuditLog(String serviceId, String requestId, Instant time, String endClientId) {
                 this.serviceId = serviceId;
@@ -26,6 +26,10 @@ public class AuditLog{
                 this.time = time;
                 this.endClientId = endClientId;
         }
+
+        public AuditLog() {
+        }
+
 
         public String getServiceId() {
                 return serviceId;

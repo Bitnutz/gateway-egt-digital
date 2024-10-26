@@ -33,6 +33,10 @@ public class XmlApi {
             return ResponseEntity.ok(ratesCollectorService.getXmlApiCurrentData(commandGet));
         } catch (JsonMappingException exception) {
             logger.error("No request for current data was spotted.\nProceeding with checking for history data.");
+        } catch (IllegalStateException duplicateException) {
+            return ResponseEntity
+                    .status(HttpStatus.CONFLICT)
+                    .body(duplicateException.getMessage());
         }
         try {
             PeriodDataXml commandHistoryGet = xmlMapper.readValue(request, PeriodDataXml.class);
@@ -40,6 +44,10 @@ public class XmlApi {
         } catch (JsonMappingException exception) {
             logger.error("No request for current data was spotted.\nProceeding with checking for history data.");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("The XML request has an invalid syntax: " + exception.getMessage());
+        } catch (IllegalStateException duplicateException) {
+            return ResponseEntity
+                    .status(HttpStatus.CONFLICT)
+                    .body(duplicateException.getMessage());
         }
     }
 }

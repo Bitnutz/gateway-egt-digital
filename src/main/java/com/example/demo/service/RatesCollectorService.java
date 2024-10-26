@@ -4,13 +4,12 @@ import com.example.demo.apigateway.RatesCollectorGateway;
 import com.example.demo.dbmodel.AuditLog;
 import com.example.demo.dbmodel.Rate;
 import com.example.demo.dbmodel.RateHistorical;
+import com.example.demo.entityservice.AuditLogService;
+import com.example.demo.entityservice.RateHistoricalService;
+import com.example.demo.entityservice.RateService;
 import com.example.demo.model.*;
-import com.example.demo.repository.AuditLogRepository;
-import com.example.demo.repository.RatesHistoricalRepository;
-import com.example.demo.repository.RatesRepository;
 import com.example.demo.xmlmodel.CurrentDataXml;
 import com.example.demo.xmlmodel.PeriodDataXml;
-import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,12 +29,21 @@ public class RatesCollectorService {
     private final Logger logger = LoggerFactory.getLogger(RatesCollectorService.class);
 
 
+//    @Autowired
+//    private RatesHistoricalRepository ratesHistoricalRepository;
+//    @Autowired
+//    private RatesRepository ratesRepository;
+//    @Autowired
+//    private AuditLogRepository auditLogRepository;
+
     @Autowired
-    private RatesHistoricalRepository ratesHistoricalRepository;
+    private RateService rateService;
+
     @Autowired
-    private RatesRepository ratesRepository;
+    private RateHistoricalService rateHistoricalService;
+
     @Autowired
-    private AuditLogRepository auditLogRepository;
+    private AuditLogService auditLogService;
 
     @Autowired
     public RatesCollectorService(RatesCollectorGateway ratesCollectorGateway) {
@@ -50,9 +58,7 @@ public class RatesCollectorService {
         RateHistoricalDTO rateHistoricalDTO = new RateHistoricalDTO(payload.success(), payload.timestamp(), payload.base(), payload.date());
         RateHistorical result = new RateHistorical(rateHistoricalDTO.success(), rateHistoricalDTO.timestamp(), rateHistoricalDTO.base(), rateHistoricalDTO.date());
 
-        ratesHistoricalRepository.save(result);
-
-
+        rateHistoricalService.saveRateHistorical(result);
 
         List<Rate> ratesForTimestamp = payload.rates()
                 .entrySet()
@@ -67,67 +73,41 @@ public class RatesCollectorService {
     }
 
     private void updateCurrentRates(List<Rate> currentRates) {
-        int deletedRates = ratesRepository.deleteOldRates();
-        logger.info("Deleted {} old rates", deletedRates);
-        currentRates.forEach(rate -> ratesRepository.save(rate));
-        logger.info("Saved {} new rates into the database.", currentRates.size());
+        rateService.deleteOldRates();
+        currentRates.forEach(rate -> rateService.saveRate(rate));
     }
 
     @Transactional
     public List<RateDTO> getJsonApiCurrentData(JsonApiCurrentRequest request) {
-        saveApiRequest(request);
+        auditLogService.saveAuditLogWithLock(new AuditLog("JSON_API_CURRENT", request.getRequestId(), request.getTimestamp(), request.getClient()));
         logger.info("[JSON endpoint] Getting current fixer data for currency {}", request.getCurrency());
-        return ratesRepository.getLatestRates(request.getCurrency())
+        return rateService.getLatestRates(request.getCurrency())
                 .stream()
                 .map(rate ->
                         new RateDTO(rate.getTimestamp(), rate.getCurrencyName(), rate.getCurrencyValue())
                 ).collect(Collectors.toList());
     }
 
-    public List<RateDTO> getJsonApiHistoryData(JsonApiHistoryRequest request) {
+    @Transactional
+    public List<Rate> getJsonApiHistoryData(JsonApiHistoryRequest request) {
+        auditLogService.saveAuditLogWithLock(new AuditLog("JSON_API_HISTORY", request.getRequestId(), request.getTimestamp(), request.getClient()));
         logger.info("[JSON endpoint] Getting history fixer data for currency {} and period {}", request.getCurrency(), request.getPeriod());
-        ArrayList<Instant> historicalRateTimestamps = ratesHistoricalRepository.getLatestRateTimestamps(request.getPeriod());
-        return ratesRepository.getRatesHistoryByTimestamp(request.getCurrency(), historicalRateTimestamps)
-                .stream()
-                .map(rate ->
-                        new RateDTO(rate.getTimestamp(), rate.getCurrencyName(), rate.getCurrencyValue())
-                ).collect(Collectors.toList());
+        List<Instant> historicalRateTimestamps = rateHistoricalService.getLatestRateTimestampsByPeriod(request.getPeriod());
+        return rateService.getRatesHistoryByTimestamp(request.getCurrency(), historicalRateTimestamps);
     }
 
-    public List<RateDTO> getXmlApiCurrentData(CurrentDataXml currentDataXml) {
+    @Transactional
+    public List<Rate> getXmlApiCurrentData(CurrentDataXml currentDataXml) {
+        auditLogService.saveAuditLogWithLock(new AuditLog("XML_API_CURRENT", currentDataXml.getId(), Instant.now(), currentDataXml.getGetRequest().getConsumer()));
         logger.info("[XML endpoint] Getting current fixer data for currency {}", currentDataXml.getGetRequest().getCurrency());
-        //todo: save the request in the audit_log
-        return ratesRepository.getLatestRates(currentDataXml.getGetRequest().getCurrency())
-                .stream()
-                .map(rate ->
-                        new RateDTO(rate.getTimestamp(), rate.getCurrencyName(), rate.getCurrencyValue())
-                ).collect(Collectors.toList());
+        return rateService.getLatestRates(currentDataXml.getGetRequest().getCurrency());
     }
 
-    public List<RateDTO> getXmlApiHistoryData(PeriodDataXml periodDataXml) {
+    @Transactional
+    public List<Rate> getXmlApiHistoryData(PeriodDataXml periodDataXml) {
+        auditLogService.saveAuditLogWithLock(new AuditLog("XML_API_PERIOD", periodDataXml.getId(), Instant.now(), periodDataXml.getHistoryRequest().getConsumer()));
         logger.info("[XML endpoint] Getting history fixer data for currency {} and period {}", periodDataXml.getHistoryRequest().getCurrency(), periodDataXml.getHistoryRequest().getPeriod());
-        ArrayList<Instant> historicalRateTimestamps = ratesHistoricalRepository.getLatestRateTimestamps(periodDataXml.getHistoryRequest().getPeriod());
-        return ratesRepository.getRatesHistoryByTimestamp(periodDataXml.getHistoryRequest().getCurrency(), historicalRateTimestamps)
-                .stream()
-                .map(rate ->
-                        new RateDTO(rate.getTimestamp(), rate.getCurrencyName(), rate.getCurrencyValue())
-                ).collect(Collectors.toList());
-    }
-
-    private void saveApiRequest(JsonApiCurrentRequest request) {
-        if(auditLogRepository.findRequestId(request.getRequestId()) > 0){
-            logger.error("The request ID {} is already present!", request.getRequestId());
-            throw new DataIntegrityViolationException("Duplicate request ID for /json_api/current");
-        }
-        auditLogRepository.save(new AuditLog("JSON_API_CURRENT", request.getRequestId(), request.getTimestamp(), request.getClient()));
-    }
-    private void saveApiRequest(JsonApiHistoryRequest request) {
-
-    }
-    private void saveApiRequest(CurrentDataXml request) {
-
-    }
-    private void saveApiRequest(PeriodDataXml request) {
-
+        List<Instant>historicalRateTimestamps = rateHistoricalService.getLatestRateTimestampsByPeriod(periodDataXml.getHistoryRequest().getPeriod());
+        return rateService.getRatesHistoryByTimestamp(periodDataXml.getHistoryRequest().getCurrency(), historicalRateTimestamps);
     }
 }

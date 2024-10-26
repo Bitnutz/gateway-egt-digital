@@ -19,12 +19,12 @@ public class RatesCollectorController {
         this.ratesCollectorService = ratesCollectorService;
     }
 
-    // might delete the whole controller
-    @GetMapping("/fetch-fixer-data")
-    public String getFixerIOData() {
-        ratesCollectorService.getFixerData();
-        logger.info("Fetched fixer.io currencies.");
-        return "Fetched fixer.io currencies.";
-    }
+//    // might delete the whole controller
+//    @GetMapping("/fetch-fixer-data")
+//    public String getFixerIOData() {
+//        ratesCollectorService.getFixerData();
+//        logger.info("Fetched fixer.io currencies.");
+//        return "Fetched fixer.io currencies.";
+//    }
 
 }
