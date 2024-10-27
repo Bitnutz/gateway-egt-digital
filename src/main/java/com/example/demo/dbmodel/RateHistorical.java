@@ -13,15 +13,13 @@ import java.time.LocalDate;
 public class RateHistorical {
         @Id
         @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "rate_historical_sequence_generator")
-        @SequenceGenerator(name = "rate_historical_sequence_generator", sequenceName = "rate_sequence",schema = "gateway", allocationSize = 1)
+        @SequenceGenerator(name = "rate_historical_sequence_generator", sequenceName = "rate_historical_sequence",schema = "gateway", allocationSize = 1)
         private Long id;
         private Boolean success;
         @JsonFormat(shape = JsonFormat.Shape.STRING, timezone = "UTC")
-        @Column(nullable = false, unique = true)
         private Instant timestamp;
         private String base;
         private LocalDate date;
-        private Boolean deleteFlag;
 
         public RateHistorical() {}
 

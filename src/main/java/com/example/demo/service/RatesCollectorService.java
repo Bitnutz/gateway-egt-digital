@@ -36,7 +36,11 @@ public class RatesCollectorService {
     @Transactional
     public void getFixerData() {
         FixerPayload payload = ratesCollectorGateway.fetchLatestFixerCurrencies();
-        RateHistorical rateHistorical = new RateHistorical(payload.success(), payload.timestamp(), payload.base(), payload.date());
+        if(!payload.success()) {
+            logger.error("The payload from the Fixer API was not fetched successfully.");
+            throw new RuntimeException("The Fixer API did not return a successful payload.\nThe API key could've expired.");
+        }
+        RateHistorical rateHistorical = new RateHistorical(true, payload.timestamp(), payload.base(), payload.date());
         rateHistoricalService.saveRateHistorical(rateHistorical);
 
         List<Rate> ratesForTimestamp = payload.rates()

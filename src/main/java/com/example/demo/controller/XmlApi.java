@@ -31,7 +31,7 @@ public class XmlApi {
             XmlApiCurrentRequest commandGet = xmlMapper.readValue(request, XmlApiCurrentRequest.class);
             return ResponseEntity.ok(statisticsCollectorService.getXmlApiCurrentData(commandGet));
         } catch (JsonMappingException exception) {
-            logger.error("No request for current data was spotted.\nProceeding with checking for history data.");
+            logger.error("[XML Controller] No request for current data was spotted. Proceeding with checking for history data.");
         } catch (IllegalStateException duplicateException) {
             return ResponseEntity
                     .status(HttpStatus.CONFLICT)
@@ -41,7 +41,7 @@ public class XmlApi {
             XmlApiPeriodRequest commandHistoryGet = xmlMapper.readValue(request, XmlApiPeriodRequest.class);
             return ResponseEntity.ok(statisticsCollectorService.getXmlApiHistoryData(commandHistoryGet));
         } catch (JsonMappingException exception) {
-            logger.error("No request for current data was spotted.\nProceeding with checking for history data.");
+            logger.error("[XML Controller] No request for history data was spotted. The XML request has an invalid syntax");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("The XML request has an invalid syntax: " + exception.getMessage());
         } catch (IllegalStateException duplicateException) {
             return ResponseEntity
